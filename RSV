@@ -1,0 +1,88 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © Monk-IV
+
+//@version=5
+indicator("Monk RSV")
+//Grab symbol 
+DXY = request.security("DX1!", "1D", close)
+IR = request.security("ZB1!", "1D", close)
+GOLD = request.security("GC1!", "1D", close)
+BTC = request.security("BTC1!", "1D", close)
+//Create Ratios
+Ratio = close / DXY
+IR_Ratio = close / IR
+GOLD_Ratio = close / GOLD 
+BTC_Ratio = close / BTC
+// Lookback period
+n = 150
+// Create a dropdown menu for selecting the lookback period option
+n_option = input.string(defval="150", title="Lookback Period", options=["10", "13", "30", "55", "100",  "150"])
+// Set the value of 'n' based on the selected option using a switch-case style if-else structure
+if (n_option == "150")
+    n := 150
+else if (n_option == "100")
+    n := 100
+else if (n_option == "55")
+    n := 55
+else if (n_option == "30")
+    n := 30
+else if (n_option == "13")
+    n := 13
+else
+    n := 10
+
+// Create Inputs for Fast and Slow Moving Averages
+fast_length = input.int(2, title="Fast EMA Length")  // Default is 2
+slow_length = input.int(22, title="Slow EMA Length")  // Default is 22
+// Calculate spread
+IR_Spread = ta.ema(IR_Ratio, fast_length) - ta.ema(IR_Ratio, slow_length)
+Spread = ta.ema(Ratio,fast_length) - ta.ema(Ratio, slow_length) 
+GOLDspread = ta.ema(GOLD_Ratio, fast_length) - ta.ema(GOLD_Ratio,slow_length)
+BTCspread = ta.ema(BTC_Ratio, fast_length) - ta.ema(BTC_Ratio, slow_length)
+// Highest and Lowest Values
+HighestSpread = ta.highest(Spread, n)
+LowestSpread = ta.lowest(Spread, n)
+HighestSpread_IR = ta.highest(IR_Spread, n)
+LowestSpread_IR = ta.lowest(IR_Spread, n)
+HighestGOLD = ta.highest(GOLDspread, n)
+LowestGOLD = ta.lowest(GOLDspread, n)
+HighestBTC = ta.highest(BTCspread, n)
+LowestBTC = ta.lowest(BTCspread, n)
+// Calculate RSV's
+RSV =  ((Spread - LowestSpread) / (HighestSpread - LowestSpread) * 100)
+RSV_IR =  ((IR_Spread - LowestSpread_IR) / (HighestSpread_IR - LowestSpread_IR) * 100)
+RSV_G = (GOLDspread - LowestGOLD) / (HighestGOLD - LowestGOLD) * 100
+RSV_B = (BTCspread - LowestBTC ) / (HighestBTC - LowestBTC) * 100 
+
+
+
+Midline = hline(50, editable = true, linewidth = 1, color=color.gray, title = " Mid-line")
+// Input options for Overvalued and Undervalued levels
+overvalued_level = input.float(80, title="Overvalued")
+undervalued_level = input.float(20, title="Undervalued")
+// Use the input values in the horizontal lines
+Overvalued = hline(overvalued_level, "Overvalued", color=color.gray, linewidth=1)
+Undervalued = hline(undervalued_level, "Undervalued", color=color.gray, linewidth=1)
+// Fills
+midLinePlot = plot(50, color = na, editable = false, display = display.none)
+// Define input variables for visibility toggles
+showRSV = input(true, title="DXY")
+showRSV_IR = input(true, title="Bonds")
+showRSV_G = input(true, title="Gold")
+showBTC = input(true, title="BTC")
+RSVplot = plot(showRSV ? RSV : na, "DXY", color=color.purple, linewidth = 2, format=format.price, precision=2, force_overlay = false)
+IRplot = plot(showRSV_IR ? RSV_IR : na, "Bonds", color=color.blue, linewidth = 2, format=format.price, precision=2, force_overlay = false)
+GOLDplot = plot(showRSV_G ? RSV_G : na, "Gold", color=color.orange, linewidth = 2, format=format.price, precision=2, force_overlay = false)
+BTCplot = plot(showBTC ? RSV_B : na , "BTC", color=color.green, linewidth = 2, format=format.price, precision=2, force_overlay = false)
+fill(RSVplot, midLinePlot, undervalued_level, 0, top_color=color.new(color.green, 100), bottom_color=color.new(color.green, 0),title = " DXY Undervalued Fill")
+fill(RSVplot, midLinePlot, 100, overvalued_level, top_color=color.new(color.red, 0), bottom_color=color.new(color.red, 100), title =  " DXY Overvalued Fill")
+fill(IRplot, midLinePlot, undervalued_level, 0, top_color = color.new(color.green, 100), bottom_color = color.new(color.green, 0), title = " Bonds Undervalued Fill")  
+fill(IRplot, midLinePlot, 100, overvalued_level,  top_color = color.new(color.red, 0), bottom_color = color.new(color.red, 100), title = " Bonds Overvalued Fill")
+fill(GOLDplot, midLinePlot, undervalued_level, 0, top_color = color.new(color.green, 100), bottom_color = color.new(color.green, 0), title = " Gold Undervalued Fill")  
+fill(GOLDplot, midLinePlot, 100, overvalued_level,  top_color = color.new(color.red, 0), bottom_color = color.new(color.red, 100), title = " Gold Overvalued Fill" ) 
+fill(BTCplot, midLinePlot, undervalued_level, 0, top_color = color.new(color.green, 100), bottom_color = color.new(color.green, 0), title = " BTC Undervalued Fill" )
+fill(BTCplot, midLinePlot, 100, overvalued_level,  top_color = color.new(color.red, 0), bottom_color = color.new(color.red, 100), title = " BTC Overvalued Fill" )
+fill(Overvalued, Undervalued, color.new(#deacebc7, 80), title="Background")
+
+
+
